@@ -1,0 +1,40 @@
+{
+  "all_passed": true,
+  "sizes": [
+    {
+      "width": 1366,
+      "scroll": 1366,
+      "height": 1024
+    },
+    {
+      "width": 1024,
+      "scroll": 1024,
+      "height": 768
+    },
+    {
+      "width": 834,
+      "scroll": 834,
+      "height": 1194
+    },
+    {
+      "width": 390,
+      "scroll": 390,
+      "height": 844
+    }
+  ],
+  "microphone_opened": false,
+  "commercial_models_called": false,
+  "checks": [
+    "landscape_portrait_phone_no_overflow",
+    "queue_navigation_and_stability",
+    "bilingual_toggle",
+    "portrait_transcript_tab",
+    "keys_preserved_across_tabs_but_not_reload",
+    "preferences_survive_reload",
+    "pdf_docx_txt_import",
+    "local_evidence_used_in_answers",
+    "contextual_abbreviation_repaired",
+    "selected_answer_and_documents_restored",
+    "backup_export"
+  ]
+}

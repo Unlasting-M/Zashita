@@ -1,0 +1,12 @@
+{
+  "all_passed": true,
+  "readable_stream_async_iterator_removed": true,
+  "worker_stream_async_iterator_removed": true,
+  "actual_pdf_cyrillic_text_verified": true,
+  "docx_txt_verified": true,
+  "failed_import_notice_cleared": true,
+  "retry_verified": true,
+  "documents_persisted": true,
+  "microphone_opened": false,
+  "commercial_models_called": false
+}

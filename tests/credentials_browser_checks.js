@@ -1,0 +1,33 @@
+async(page)=>{
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('http://127.0.0.1:28880');await page.setViewportSize({width:834,height:1194});
+ if(await page.title()!=='Zashita · iPad')throw Error('Product title mismatch');
+ await page.getByRole('button',{name:'设置',exact:true}).click();
+ const qwen=page.getByLabel('百炼 API Key',{exact:true}),deepseek=page.getByLabel('DeepSeek API Key',{exact:true});
+ await qwen.fill('sk-isolated-remember-bailian');await deepseek.fill('sk-isolated-remember-deepseek');
+ await page.getByRole('button',{name:'保存密钥',exact:true}).click();
+ await page.getByText('密钥已保存到此设备，下次打开会自动恢复',{exact:true}).waitFor();
+ await page.screenshot({path:'output/playwright/credentials-saved.png'});
+ await page.reload();await page.getByRole('button',{name:'设置',exact:true}).click();
+ if(await qwen.inputValue()!=='sk-isolated-remember-bailian'||await deepseek.inputValue()!=='sk-isolated-remember-deepseek')throw Error('Saved credentials did not survive reload');
+ const disk=await page.evaluate(async()=>{const db=await new Promise((resolve,reject)=>{const r=indexedDB.open('russian-defense-ipad',1);r.onsuccess=()=>resolve(r.result);r.onerror=reject;});const record=await new Promise(resolve=>{const r=db.transaction('records').objectStore('records').get('cloud-credentials-v1');r.onsuccess=()=>resolve(r.result);});db.close();return {notExtractable:record.key.extractable===false,algorithm:record.key.algorithm.name,encrypted:record.ciphertext.byteLength>0,noPlaintext:!JSON.stringify(record).includes('sk-isolated-')};});
+ if(!disk.notExtractable||disk.algorithm!=='AES-GCM'||!disk.encrypted||!disk.noPlaintext)throw Error('IndexedDB credential storage validation failed');
+ await qwen.fill('sk-isolated-unsaved-change');await page.reload();await page.getByRole('button',{name:'设置',exact:true}).click();
+ if(await qwen.inputValue()!=='sk-isolated-remember-bailian')throw Error('Unsaved edits overwrote saved key');
+ await qwen.fill('sk-isolated-replaced-bailian');await page.getByRole('button',{name:'保存密钥',exact:true}).click();await page.getByText('密钥已保存到此设备，下次打开会自动恢复',{exact:true}).waitFor();
+ const second=await page.context().newPage();await second.goto('http://127.0.0.1:28880');await second.getByRole('button',{name:'设置',exact:true}).click();
+ if(await second.getByLabel('百炼 API Key',{exact:true}).inputValue()!=='sk-isolated-replaced-bailian')throw Error('Fresh page did not restore saved key');await second.close();
+ await qwen.fill('sk-isolated-failed-bailian');
+ await page.evaluate(()=>{globalThis.__originalPut=IDBObjectStore.prototype.put;IDBObjectStore.prototype.put=function(value,key){if(key==='cloud-credentials-v1')throw new DOMException('isolated storage full','QuotaExceededError');return globalThis.__originalPut.call(this,value,key);};});
+ await page.getByRole('button',{name:'保存密钥',exact:true}).click();await page.getByRole('alert').filter({hasText:'密钥未保存成功'}).waitFor();
+ if(await page.getByText('密钥已保存到此设备，下次打开会自动恢复',{exact:true}).count())throw Error('Stale success notice remained after failed save');
+ await page.reload();await page.getByRole('button',{name:'设置',exact:true}).click();if(await qwen.inputValue()!=='sk-isolated-replaced-bailian')throw Error('Failed write lost previous key');
+ await page.getByRole('button',{name:'历史',exact:true}).click();const download=page.waitForEvent('download');await page.getByRole('button',{name:'导出备份',exact:true}).click();await(await download).saveAs('output/fixtures/credentials-backup.json');
+ await page.getByRole('button',{name:'设置',exact:true}).click();await page.getByRole('button',{name:'清除已保存密钥',exact:true}).click();await page.getByText('当前页面和此设备已保存的密钥均已清除',{exact:true}).waitFor();
+ await page.reload();await page.getByRole('button',{name:'设置',exact:true}).click();if(await qwen.inputValue()||await deepseek.inputValue())throw Error('Cleared keys returned after reload');
+ const author=page.getByText('by xinyu',{exact:true});await author.scrollIntoViewIfNeeded();
+ if(!await page.evaluate(()=>document.querySelector('main').lastElementChild.classList.contains('settings-author')))throw Error('Author is not at bottom of settings');
+ await page.screenshot({path:'output/playwright/zashita-author.png'});
+ if(errors.length)throw Error(errors.join('\n'));
+ return {all_passed:true,refresh_restores_saved_keys:true,new_page_restores_keys:true,overwrite_verified:true,unsaved_edits_preserve_previous_saved_keys:true,storage_failure_keeps_previous_key_and_shows_no_false_success:true,clear_survives_reload:true,indexeddb:disk,microphone_opened:false,commercial_models_called:false};
+}
